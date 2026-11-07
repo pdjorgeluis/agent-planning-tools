@@ -226,6 +226,16 @@ def uninstall(prefix, dry_run, yes, out=print):
         return 1
     os.remove(path)
     for d in sorted(set(manifest["dirs"]), key=len, reverse=True):
+        cache = os.path.join(d, "__pycache__")
+        if os.path.isdir(cache) and not os.path.islink(cache):
+            # Bytecode written by running the installed tools; safe to drop.
+            for name in os.listdir(cache):
+                if name.endswith(".pyc"):
+                    os.remove(os.path.join(cache, name))
+            try:
+                os.rmdir(cache)
+            except OSError:
+                pass
         try:
             os.rmdir(d)
         except OSError:

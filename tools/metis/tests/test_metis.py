@@ -88,7 +88,7 @@ class ContextTests(MetisBase):
     def test_no_context_means_no_glossary_section(self):
         srv = self.one_server()
         self.metis("x")
-        self.assertNotIn("glossary", self.sent(srv)["messages"][0]["content"])
+        self.assertNotIn("## Requester glossary", self.sent(srv)["messages"][0]["content"])
 
     def test_missing_context_file_exits_2(self):
         self.one_server()

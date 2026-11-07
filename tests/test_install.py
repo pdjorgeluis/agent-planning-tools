@@ -180,6 +180,15 @@ class UninstallTests(InstallBase):
         self.inst("--uninstall", "--prefix", self.prefix)
         self.assertEqual(self.files(), ["keep.md", "tools/metis/notes.txt"])
 
+    def test_uninstall_removes_pycache_under_installed_dirs(self):
+        self.inst("--tools", "metis", "--prefix", self.prefix, "--yes")
+        cache = os.path.join(self.prefix, "lib", "aptlib", "__pycache__")
+        os.makedirs(cache)
+        put(os.path.join(cache, "config.cpython-314.pyc"), "x")
+        rc, _, _ = self.inst("--uninstall", "--prefix", self.prefix)
+        self.assertEqual(rc, 0)
+        self.assertEqual(self.files() if os.path.exists(self.prefix) else [], [])
+
     def test_uninstall_keeps_modified_file_without_yes(self):
         self.inst("--tools", "metis", "--prefix", self.prefix, "--yes")
         target = os.path.join(self.prefix, "tools", "metis", "prompt.md")
