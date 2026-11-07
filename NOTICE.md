@@ -6,7 +6,8 @@ agent-planning-tools is released under the MIT licence (see `LICENSE`).
 
 The two roles in this project, a pre-planning consultant named Metis and a spec
 reviewer named Momus, were inspired by the agents of the same names in
-**Oh-My-OpenAgent**, an open-source project for orchestrating coding agents.
+**Oh-My-OpenAgent** (<https://github.com/code-yeongyu/oh-my-openagent>), an open-source
+project for orchestrating coding agents.
 
 Oh-My-OpenAgent is distributed under the Sustainable Use License 1.0. As we
 read it, that licence permits free, non-commercial distribution only and is
