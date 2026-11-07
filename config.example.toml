@@ -1,0 +1,42 @@
+# agent-planning-tools example config.
+# Copy to ~/.config/agent-planning-tools/config.toml and edit. Every value
+# below is a placeholder: nothing here is a recommendation or a default.
+#
+# Order of precedence: CLI flags, then environment variables, then this file,
+# then built-in defaults. API keys are NEVER written here: name the
+# environment variable in `api_key_env`. If the key lives in a dotenv file,
+# point APT_DOTENV at it; only the names listed below are read from it.
+#
+# Backends form an ordered ladder. A rung that fails (non-zero exit, timeout,
+# HTTP error, empty answer, or a reply that breaks the output format) hands
+# over to the next rung. With no [[backend]] table at all, a single
+# `claude-cli` rung is used when `claude` is on PATH.
+
+[settings]
+timeout = 300        # seconds per rung (APT_TIMEOUT overrides)
+max_tokens = 4000    # openai-compat answer budget (APT_MAX_TOKENS overrides)
+
+# 1) The `claude` CLI, tools disabled. model/effort are optional.
+[[backend]]
+name = "claude"
+kind = "claude-cli"
+model = "YOUR-MODEL-ID"
+effort = "medium"          # low | medium | high
+# command = "claude"       # override the executable if needed
+
+# 2) Any OpenAI-compatible chat-completions endpoint.
+[[backend]]
+name = "my-endpoint"
+kind = "openai-compat"
+base_url = "https://YOUR-HOST.example/v1"
+model = "YOUR-MODEL-ID"
+api_key_env = "YOUR_API_KEY_ENV_NAME"   # the NAME of the variable, not the key
+# max_tokens = 4000
+# timeout = 300
+
+# 3) Any CLI that reads the prompt on stdin and prints the answer on stdout.
+#    This is how Codex, OpenCode or another tool can serve as the model.
+[[backend]]
+name = "my-cli"
+kind = "command"
+command = ["YOUR-CLI", "--reads-stdin"]
