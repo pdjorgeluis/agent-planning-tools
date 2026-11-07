@@ -119,7 +119,7 @@ class Sandbox(unittest.TestCase):
             f.write(text)
         return path
 
-    def run_script(self, script, *args, stdin=None, **extra):
+    def run_script(self, script, *args, stdin=b"", **extra):
         p = subprocess.run([sys.executable, "-I", script, *args],
                            input=stdin, capture_output=True, timeout=60,
                            env=self.env(**extra), cwd=self.work)
