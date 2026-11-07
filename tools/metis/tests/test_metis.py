@@ -5,7 +5,7 @@ import unittest
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 sys.path.insert(0, os.path.join(REPO, "lib"))
 
-from aptlib.testkit import Sandbox, make_fake, ok_body  # noqa: E402
+from aptlib.testkit import Sandbox, put, make_fake, ok_body  # noqa: E402
 
 SCRIPT = os.path.join(REPO, "tools", "metis", "metis.py")
 GOOD = "## Intent\nbuild a thing\n## Questions\n1. which?"

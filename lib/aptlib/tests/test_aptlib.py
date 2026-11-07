@@ -6,7 +6,7 @@ REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.a
 sys.path.insert(0, os.path.join(REPO, "lib"))
 
 from aptlib import backends, config, logs, testkit  # noqa: E402
-from aptlib.testkit import Sandbox, make_fake, make_sleeper, ok_body  # noqa: E402
+from aptlib.testkit import Sandbox, put, make_fake, make_sleeper, ok_body  # noqa: E402
 
 
 class ConfigTests(Sandbox):

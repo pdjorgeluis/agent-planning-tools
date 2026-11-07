@@ -54,6 +54,11 @@ class MockServer:
         self.httpd.server_close()
 
 
+def put(path, text):
+    with open(path, "w") as f:
+        f.write(text)
+
+
 def ok_body(text, finish="stop"):
     return {"choices": [{"message": {"content": text}, "finish_reason": finish}]}
 
