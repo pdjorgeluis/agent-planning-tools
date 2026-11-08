@@ -17,7 +17,8 @@ LIB = os.path.join(REPO, "lib")
 
 class MockServer:
     """Serves scripted chat-completions replies: a list of (status, body)
-    consumed in order; the last one repeats. Records every request."""
+    consumed in order; the last one repeats. An item may carry a third
+    element, a dict of extra response headers. Records every request."""
 
     def __init__(self, script):
         self.script, self.requests = list(script), []
@@ -29,12 +30,16 @@ class MockServer:
                 raw = self.rfile.read(n)
                 outer.requests.append({"path": self.path, "raw": raw,
                                        "auth": self.headers.get("Authorization")})
-                status, body = (outer.script.pop(0) if len(outer.script) > 1
-                                else outer.script[0])
+                item = (outer.script.pop(0) if len(outer.script) > 1
+                        else outer.script[0])
+                status, body = item[0], item[1]
+                extra = item[2] if len(item) > 2 else {}
                 data = body if isinstance(body, bytes) else json.dumps(body).encode()
                 self.send_response(status)
                 self.send_header("Content-Type", "application/json")
                 self.send_header("Content-Length", str(len(data)))
+                for k, v in extra.items():
+                    self.send_header(k, v)
                 self.end_headers()
                 self.wfile.write(data)
 

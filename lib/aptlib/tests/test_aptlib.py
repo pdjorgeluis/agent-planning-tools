@@ -110,6 +110,43 @@ class BackendTests(Sandbox):
         self.assertEqual(srv.requests[0]["auth"], "Bearer tok-12345")
         self.assertTrue(srv.requests[0]["path"].endswith("/chat/completions"))
 
+    def _redirect_case(self, code, location=None):
+        target = self.server((200, ok_body("stolen")))
+        loc = location or (target.base_url + "/chat/completions")
+        first = self.server((code, b"moved", {"Location": loc}))
+        cfg = self.cfg(self.server_config(first.base_url, "m", key_env="K1"),
+                       K1="tok-12345")
+        reply, causes = backends.run_ladder(cfg, cfg.rungs, "sys", "usr")
+        self.assertIsNone(reply)
+        self.assertEqual(target.requests, [])
+        self.assertIn(f"redirect not followed (HTTP {code})", causes[0])
+        self.assertNotIn("tok-12345", " ".join(causes))
+        return target, first
+
+    def test_redirect_301_not_followed_key_never_forwarded(self):
+        target, first = self._redirect_case(301)
+        self.assertEqual(len(first.requests), 1)
+        self.assertEqual(target.requests, [])
+
+    def test_redirect_302_not_followed(self):
+        self._redirect_case(302)
+
+    def test_redirect_303_not_followed(self):
+        self._redirect_case(303)
+
+    def test_redirect_307_still_an_error(self):
+        self._redirect_case(307)
+
+    def test_relative_redirect_not_followed_and_ladder_continues(self):
+        first = self.server((302, b"x", {"Location": "/elsewhere"}))
+        second = self.server((200, ok_body("fine")))
+        cfg = self.cfg(self.server_config(first.base_url, "a", key_env="K1") +
+                       self.server_config(second.base_url, "b"), K1="tok-12345")
+        reply, causes = backends.run_ladder(cfg, cfg.rungs, "s", "u")
+        self.assertEqual(reply.text, "fine")
+        self.assertEqual(len(first.requests), 1)
+        self.assertIn("redirect not followed (HTTP 302)", causes[0])
+
     def test_http_500_falls_to_next_rung(self):
         bad = self.server((500, {"error": "boom"}))
         good = self.server((200, ok_body("second")))

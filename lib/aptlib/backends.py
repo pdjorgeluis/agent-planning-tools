@@ -21,6 +21,18 @@ CLAUDE_SAFETY_FLAGS = ["--tools", "", "--no-session-persistence",
 ENV_SCRUB_PREFIXES = ("HERMES_",)
 
 
+class _NoRedirect(urllib.request.HTTPRedirectHandler):
+    """Never follow a redirect: the key goes only to the configured base_url."""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        raise urllib.error.HTTPError(req.full_url, code,
+                                     f"redirect not followed (HTTP {code})",
+                                     headers, fp)
+
+
+_OPENER = urllib.request.build_opener(_NoRedirect)
+
+
 class Reply:
     def __init__(self, text, finish, rung, number, total):
         self.text, self.finish, self.rung = text, finish, rung
@@ -101,10 +113,12 @@ def call_openai_compat(rung, api_key, max_tokens, system_prompt, user_text,
     req = urllib.request.Request(url, data=json.dumps(payload).encode("utf-8"),
                                  headers=headers, method="POST")
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
+        with _OPENER.open(req, timeout=timeout) as resp:
             body = json.loads(resp.read().decode("utf-8"))
     except urllib.error.HTTPError as exc:
         exc.close()
+        if str(exc.reason).startswith("redirect not followed"):
+            return None, None, str(exc.reason)
         return None, None, f"HTTP error {exc.code}: {exc.reason}"
     except urllib.error.URLError as exc:
         if "timed out" in str(exc.reason).lower():
