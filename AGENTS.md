@@ -84,5 +84,5 @@ offending text.
   is enforced in `tools/momus/momus.py`; Metis's eight `## ` headings are listed
   in `docs/WORKFLOW.md`. Change prompt and parser together, and update the tests.
 - The Metis test that checks no glossary section is sent when `--context` is
-  absent looks for the word "glossary" anywhere in the prompt; keep that word out
-  of `tools/metis/prompt.md`, or make the test look for the appended heading.
+  absent looks for the appended heading (`## Requester glossary`), so the
+  prompt itself may use any wording.

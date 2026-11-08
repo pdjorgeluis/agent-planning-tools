@@ -24,7 +24,7 @@ send it to [AGENT-INSTALL.md](AGENT-INSTALL.md).)
 ## 1. Get the code
 
 ```
-git clone <URL of this repository> agent-planning-tools
+git clone https://github.com/pdjorgeluis/agent-planning-tools.git agent-planning-tools
 cd agent-planning-tools
 ```
 

@@ -39,7 +39,7 @@ workflow is in [docs/WORKFLOW.md](docs/WORKFLOW.md).
 ## Quick start
 
 ```
-git clone <URL of this repository> agent-planning-tools
+git clone https://github.com/pdjorgeluis/agent-planning-tools.git agent-planning-tools
 cd agent-planning-tools
 python3 install.py --tools all --target generic --dry-run   # see what it would write
 python3 install.py --tools all --target generic             # do it
