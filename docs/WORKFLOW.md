@@ -37,7 +37,10 @@ hand Metis a short glossary with `--context FILE`
 
 ### The eight sections
 
-Metis's reply always has these eight `## ` headings, in this order:
+Metis's reply normally has these eight `## ` headings, in this order. The
+tool itself only checks that the reply holds at least one `## ` heading, so a
+model may skip or rename some: look at the headings before you rely on a
+section.
 
 | Heading | What it gives you |
 |---------|-------------------|

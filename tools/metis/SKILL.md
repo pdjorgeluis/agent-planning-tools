@@ -50,7 +50,9 @@ secrets in the request; its text is sent to the configured model backend.
 ## Reading the result
 
 The first line is a header: `[metis] backend=<name> model=<id> finish=<..>`.
-Then eight sections, each opened by a `## ` heading: Intent; Candidate
+Then normally eight sections (the tool only requires at least one `## `
+heading, so check which headings are there), each opened by a `## ` heading:
+Intent; Candidate
 readings and gaps; Undefined terms; Acceptance criteria; Missing constraints;
 Likely failure points; Questions for the requester; Recommended approach.
 
