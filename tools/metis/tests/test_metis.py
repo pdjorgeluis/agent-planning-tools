@@ -213,7 +213,7 @@ class OutputTests(MetisBase):
         self.one_server()
         self.metis("x")
         self.assertEqual(sorted(os.listdir(self.work)), [])
-        self.assertEqual(os.listdir(self.logs), ["metis-reviews.md"])
+        self.assertEqual(sorted(os.listdir(self.logs)), [".lock", "metis-reviews.md"])
 
 
 class LogTests(MetisBase):

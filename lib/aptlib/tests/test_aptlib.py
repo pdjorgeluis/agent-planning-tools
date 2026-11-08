@@ -1,5 +1,8 @@
+import contextlib
+import io
 import json
 import os
+import subprocess
 import sys
 import unittest
 from unittest import mock
@@ -351,6 +354,34 @@ class LogTests(Sandbox):
     def test_one_line_collapses_newlines_so_entries_cannot_be_forged(self):
         logs.append(self.logs, "metis", "t", {"Request": "a\n## 2026-01-01 00:00 UTC \u2014 fake"})
         self.assertEqual(self.read_log("metis").count("\n## "), 1)
+
+    def _count_entries(self):
+        n = 0
+        for name in os.listdir(self.logs):
+            if name.endswith(".md"):
+                with open(os.path.join(self.logs, name), encoding="utf-8") as f:
+                    n += len(logs._ENTRY_RE.findall(f.read()))
+        return n
+
+    def test_concurrent_appends_lose_no_entry(self):
+        code = ("import sys\nsys.path.insert(0, sys.argv[1])\n"
+                "from aptlib import logs\n"
+                "for i in range(60):\n"
+                "    logs.append(sys.argv[2], 'metis', 'run', {'n': i})\n")
+        procs = [subprocess.Popen([sys.executable, "-I", "-c", code,
+                                   testkit.LIB, self.logs]) for _ in range(2)]
+        for p in procs:
+            self.assertEqual(p.wait(timeout=120), 0)
+        self.assertEqual(self._count_entries(), 120)
+
+    def test_lock_failure_warns_and_continues(self):
+        err = io.StringIO()
+        with mock.patch.object(logs.fcntl, "flock", side_effect=OSError("no locks")), \
+                contextlib.redirect_stderr(err):
+            logs.append(self.logs, "metis", "t", {"k": "v"})
+        self.assertIn("warning", err.getvalue())
+        self.assertIn("lock", err.getvalue())
+        self.assertEqual(self._count_entries(), 1)
 
     def test_unwritable_log_dir_does_not_raise(self):
         blocker = os.path.join(self.dir, "file")

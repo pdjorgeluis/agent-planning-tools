@@ -88,6 +88,9 @@ Logs live in `${XDG_STATE_HOME:-~/.local/state}/agent-planning-tools/`, or in
   the **SHA-256 hash** of its bytes, backend, verdict, issue count. It does
   **not** store the spec's text or any file excerpt.
 
+A small empty `.lock` file sits beside them; it only serializes two runs that
+write at once.
+
 Neither log ever holds a key, a full request, or file contents. At 50 entries a
 log rolls over into `<tool>-reviews-archive-YYYY-MM.md` in the same folder. The
 logs are plain text; delete them whenever you like. If the folder is not

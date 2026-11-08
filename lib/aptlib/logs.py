@@ -5,6 +5,11 @@ import re
 import sys
 from datetime import datetime, timezone
 
+try:
+    import fcntl
+except ImportError:  # not Unix; the tools document Unix only
+    fcntl = None
+
 ROTATE_AT = 50
 REQUEST_CHARS = 100
 _ENTRY_RE = re.compile(r"^## \d{4}-\d{2}-\d{2} \d{2}:\d{2} UTC \u2014 ", re.M)
@@ -45,6 +50,37 @@ def rotate(log_path, tool):
         f.write(text[:starts[0]])
 
 
+class _Locked:
+    """Exclusive, blocking flock on <log dir>/.lock around rotate+append. If
+    the lock cannot be taken, warn on stderr and carry on without it."""
+
+    def __init__(self, log_dir, tool):
+        self.log_dir, self.tool, self.handle = log_dir, tool, None
+
+    def __enter__(self):
+        try:
+            if fcntl is None:
+                raise OSError("flock is not available")
+            self.handle = open(os.path.join(self.log_dir, ".lock"), "a")
+            fcntl.flock(self.handle, fcntl.LOCK_EX)
+        except OSError as exc:
+            print(f"[{self.tool}] warning: log lock failed, continuing without "
+                  f"it: {exc}", file=sys.stderr)
+            if self.handle is not None:
+                self.handle.close()
+            self.handle = None
+        return self
+
+    def __exit__(self, *exc_info):
+        if self.handle is not None:
+            try:
+                fcntl.flock(self.handle, fcntl.LOCK_UN)
+            except OSError:
+                pass
+            self.handle.close()
+        return False
+
+
 def append(log_dir, tool, title, fields):
     """Append one entry. Never raises: a log problem must not fail a review."""
     try:
@@ -54,14 +90,15 @@ def append(log_dir, tool, title, fields):
         body = "".join(f"**{k}:** {one_line(str(v), 300)}\n"
                        for k, v in fields.items())
         entry = f"## {now} UTC \u2014 {one_line(title, 80)}\n\n{body}\n---\n"
-        try:
-            rotate(path, tool)
-        except OSError as exc:
-            print(f"[{tool}] warning: log rotation failed: {exc}", file=sys.stderr)
-        if not os.path.exists(path):
-            with open(path, "w", encoding="utf-8") as f:
-                f.write(_header(tool))
-        with open(path, "a", encoding="utf-8") as f:
-            f.write(entry)
+        with _Locked(log_dir, tool):
+            try:
+                rotate(path, tool)
+            except OSError as exc:
+                print(f"[{tool}] warning: log rotation failed: {exc}", file=sys.stderr)
+            if not os.path.exists(path):
+                with open(path, "w", encoding="utf-8") as f:
+                    f.write(_header(tool))
+            with open(path, "a", encoding="utf-8") as f:
+                f.write(entry)
     except OSError as exc:
         print(f"[{tool}] warning: cannot write log: {exc}", file=sys.stderr)
