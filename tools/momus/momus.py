@@ -171,9 +171,12 @@ def count_lines(path):
 
 DENY_NAME_PATTERNS = (
     ".env", "*.env", ".env.*", "*token*", "*secret*", "*credential*",
-    "auth.json", "id_rsa*", "id_ed25519*",
+    "auth.json", "id_rsa*", "id_ed25519*", "id_ecdsa*", "id_dsa*",
+    "*.pem", "*.key", "*.p12", "*.pfx",
+    ".netrc", ".npmrc", ".pypirc", ".pgpass",
 )
-DENY_HOME_DIRS = (".ssh", ".gnupg")
+DENY_HOME_DIRS = (".ssh", ".gnupg", ".aws", ".kube", ".docker", ".azure",
+                  ".config/gcloud")
 
 
 def _under(path, root):
@@ -393,6 +396,11 @@ def parse_args(argv):
     if not os.path.isfile(spec):
         raise MomusError(f"usage error: spec file not found: {args.paths[0]}")
     args.spec = spec
+    for d in args.allow + args.base:
+        if _is_broad(os.path.realpath(os.path.expanduser(d))):
+            print(f"[momus] warning: {d} is your home folder or the filesystem "
+                  "root; every readable file under it can be sent to the model",
+                  file=sys.stderr)
     return args
 
 
@@ -406,9 +414,20 @@ def read_spec(path):
     return raw.decode("utf-8", errors="replace"), hashlib.sha256(raw).hexdigest()
 
 
+def _is_broad(real):
+    """True for the home folder and the filesystem root."""
+    return real in (os.path.realpath(os.path.expanduser("~")), os.path.realpath(os.sep))
+
+
 def readable_roots(args):
-    return [os.path.realpath(os.path.dirname(os.path.abspath(args.spec)))] + [
-        os.path.realpath(os.path.expanduser(d)) for d in args.allow + args.base]
+    """The spec's own folder, unless that is the home folder or /, then only
+    the explicit --allow and --base folders."""
+    roots = []
+    spec_dir = os.path.realpath(os.path.dirname(os.path.abspath(args.spec)))
+    if not _is_broad(spec_dir):
+        roots.append(spec_dir)
+    return roots + [os.path.realpath(os.path.expanduser(d))
+                    for d in args.allow + args.base]
 
 
 def log_entry(cfg, args, spec_sha, backend, verdict, issues):

@@ -39,10 +39,15 @@ Only the Momus script reads files (the model has no tools). It reads a file
 only if **all** of these hold:
 
 - It is inside the spec's own folder or a folder you named with `--allow` or
-  `--base`.
+  `--base`. A spec saved directly in your home folder or in `/` does not make
+  that folder readable; only the folders you name count. Naming the home folder
+  or `/` yourself works but prints a warning.
 - No part of the path, as written or after following symlinks, matches the deny
   list: `.env`, `*.env`, `.env.*`, `*token*`, `*secret*`, `*credential*`,
-  `auth.json`, `id_rsa*`, `id_ed25519*`; or lies under `~/.ssh` or `~/.gnupg`.
+  `auth.json`, `id_rsa*`, `id_ed25519*`, `id_ecdsa*`, `id_dsa*`, `*.pem`,
+  `*.key`, `*.p12`, `*.pfx`, `.netrc`, `.npmrc`, `.pypirc`, `.pgpass`; or lies
+  under `~/.ssh`, `~/.gnupg`, `~/.aws`, `~/.kube`, `~/.docker`, `~/.azure` or
+  `~/.config/gcloud`.
 - It does not escape the allowed folders with `..` or through a symlink.
 
 Matching is case-insensitive and applies to every component of the path, so

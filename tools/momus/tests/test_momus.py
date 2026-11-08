@@ -306,6 +306,62 @@ class SandboxTests(MomusBase):
                 self.assertNotIn("LEAK-", b)
                 self.assertIn("DENIED", b)
 
+    def _denied(self, rel_paths, name):
+        for rel in rel_paths:
+            p = os.path.join(self.home, rel) if not os.path.isabs(rel) else rel
+            os.makedirs(os.path.dirname(p), exist_ok=True)
+            put(p, "LEAK-" + name)
+            with mock.patch.dict(os.environ, {"HOME": self.home}):
+                b = momus.build_bundle("s", momus.extract_refs(f"see {p}"), [self.home])
+            self.assertNotIn("LEAK-", b, rel)
+            self.assertIn("DENIED", b, rel)
+
+    def test_deny_netrc_npmrc_pypirc_pgpass(self):
+        self._denied([".netrc", ".npmrc", ".pypirc", ".pgpass"], "rc")
+
+    def test_deny_pem_key_p12_pfx(self):
+        self._denied(["foo/server.pem", "foo/my.key", "foo/a.p12", "foo/B.PFX"], "pem")
+
+    def test_deny_ecdsa_dsa_keys(self):
+        self._denied(["foo/id_ecdsa", "foo/id_ecdsa.pub", "foo/id_dsa", "foo/id_dsa_old"], "k")
+
+    def test_deny_aws_kube_docker_azure_gcloud(self):
+        self._denied([".aws/config", ".kube/config", ".docker/config.json",
+                      ".azure/x.json", ".config/gcloud/creds.db"], "cloud")
+
+    @staticmethod
+    def _args(spec, allow=(), base=()):
+        import argparse
+        return argparse.Namespace(spec=spec, allow=list(allow), base=list(base))
+
+    def test_spec_in_home_dir_not_an_auto_root(self):
+        spec = os.path.join(self.home, "spec.md")
+        with mock.patch.dict(os.environ, {"HOME": self.home}):
+            self.assertEqual(momus.readable_roots(self._args(spec)), [])
+            self.assertEqual(momus.readable_roots(self._args(spec, allow=[self.work])),
+                             [os.path.realpath(self.work)])
+            # a sibling folder of the home keeps the normal rule
+            self.assertEqual(momus.readable_roots(self._args(self.work + "/s.md")),
+                             [os.path.realpath(self.work)])
+
+    def test_spec_in_root_dir_not_an_auto_root(self):
+        self.assertEqual(momus.readable_roots(self._args("/spec.md")), [])
+        self.assertEqual(momus.readable_roots(self._args("/spec.md", base=[self.work])),
+                         [os.path.realpath(self.work)])
+
+    def test_allow_home_warns_but_works(self):
+        spec = self.spec("see " + os.path.join(self.home, "note.txt") + "\n")
+        put(os.path.join(self.home, "note.txt"), "x")
+        link = os.path.join(self.dir, "homelink")
+        os.symlink(self.home, link)
+        for allow in (self.home, self.home + "/", link):
+            rc, out, err = self.momus("--backend", "none", "--allow", allow, spec)
+            self.assertEqual(rc, 0, (allow, out, err))
+            self.assertEqual(err.count("[momus] warning:"), 1, (allow, err))
+            self.assertIn("- OK", out)
+        rc, out, err = self.momus("--backend", "none", "--base", "/", spec)
+        self.assertEqual(err.count("[momus] warning:"), 1, err)
+
     def test_deny_dotdot_and_symlink_escape(self):
         outside = os.path.join(self.dir, "outside")
         os.makedirs(outside)
