@@ -4,7 +4,8 @@
     python3 scripts/privacy-scan.py [--terms-file FILE] [--root DIR]
 
 Scans every tracked or untracked non-ignored file, and the patch bodies of
-`git log -p --format=` (commit headers excluded). Fails (exit 1) when it finds
+`git log -p --format=` (commit headers excluded), plus every commit message
+and annotated-tag message (labelled `history-message:<short hash>`). Fails (exit 1) when it finds
 a term from the terms file (one per line, case-insensitive; the file is
 supplied by the maintainer and is never stored in the repo) or a secret-looking
 pattern. Findings print as `file:line: kind` and never echo the matched text.
@@ -101,6 +102,26 @@ def scan_history(root, terms, findings):
         findings += [(label, n, kind) for label, _ln, kind in tmp]
 
 
+def scan_messages(root, terms, findings):
+    """Commit and annotated-tag messages (never author or tagger headers)."""
+    p = git(root, "log", "--format=%x01%h%n%B")
+    if p.returncode == 0:
+        for chunk in p.stdout.decode("utf-8", "replace").split("\x01")[1:]:
+            short, _, body = chunk.partition("\n")
+            scan_text(f"history-message:{short.strip()}", body, terms, findings)
+    p = git(root, "for-each-ref", "refs/tags",
+            "--format=%(objecttype) %(objectname:short) %(refname)")
+    if p.returncode != 0:
+        return
+    for row in p.stdout.decode("utf-8", "replace").splitlines():
+        kind, short, ref = row.split(" ", 2)
+        if kind != "tag":
+            continue
+        body = git(root, "for-each-ref", ref, "--format=%(contents)")
+        scan_text(f"history-message:{short}", body.stdout.decode("utf-8", "replace"),
+                  terms, findings)
+
+
 def run(root, terms_file):
     terms = load_terms(terms_file) if terms_file else []
     if not terms:
@@ -120,6 +141,7 @@ def run(root, terms_file):
         scan_text(rel, text, terms, findings)
     if is_git:
         scan_history(root, terms, findings)
+        scan_messages(root, terms, findings)
     seen = set()
     for label, n, kind in findings:
         if (label, n, kind) not in seen:

@@ -41,9 +41,9 @@ class ScanBase(Sandbox):
         self.assertEqual(p.returncode, 0, p.stderr)
         return p.stdout.decode()
 
-    def commit(self):
+    def commit(self, message="c"):
         self.g("add", "-A")
-        self.g("commit", "-q", "-m", "c")
+        self.g("commit", "-q", "--allow-empty", "-m", message)
 
     def scan(self, *args):
         p = subprocess.run([sys.executable, "-I", SCAN, "--root", self.repo, *args],
@@ -116,6 +116,33 @@ class HistoryTests(ScanBase):
         self.commit()  # author email is an example address, in the header only
         rc, _, _ = self.scan()
         self.assertEqual(rc, 0)
+
+
+class MessageTests(ScanBase):
+    def test_scan_flags_term_in_commit_message(self):
+        put(os.path.join(self.repo, "f.txt"), "clean\n")
+        self.commit("mention of zorblax in a message")
+        rc, out, _ = self.scan("--terms-file", self.terms("zorblax"))
+        self.assertEqual(rc, 1)
+        self.assertIn("history-message:", out)
+        self.assertIn("forbidden term #1", out)
+        self.assertNotIn("orblax", out.lower())
+
+    def test_scan_flags_term_in_tag_message(self):
+        put(os.path.join(self.repo, "f.txt"), "clean\n")
+        self.commit()
+        self.g("tag", "-a", "v1", "-m", "release note about zorblax")
+        rc, out, _ = self.scan("--terms-file", self.terms("zorblax"))
+        self.assertEqual(rc, 1)
+        self.assertIn("history-message:", out)
+
+    def test_scan_still_ignores_author_headers(self):
+        put(os.path.join(self.repo, "f.txt"), "clean\n")
+        self.commit()
+        self.g("tag", "-a", "v1", "-m", "fine")
+        # the author and tagger identities appear in headers only
+        rc, out, _ = self.scan("--terms-file", self.terms(J(["author", "@", "example"])))
+        self.assertEqual(rc, 0, out)
 
 
 class TermsTests(ScanBase):
