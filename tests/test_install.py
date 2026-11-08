@@ -72,18 +72,34 @@ class SelectionTests(InstallBase):
 class TargetTests(InstallBase):
     def test_hermes_skill_written_with_root_substituted(self):
         self.inst("--tools", "all", "--target", "hermes", "--prefix", self.prefix, "--yes")
-        skill = os.path.join(self.prefix, ".hermes", "skills", "metis", "SKILL.md")
+        skill = os.path.join(self.prefix, ".hermes", "skills", "apt-metis", "SKILL.md")
         with open(skill) as f:
             text = f.read()
         self.assertIn(self.prefix, text)
         self.assertNotIn("{{APT_ROOT}}", text)
-        self.assertTrue(os.path.exists(os.path.join(self.prefix, ".hermes", "skills", "momus", "SKILL.md")))
+        self.assertTrue(os.path.exists(os.path.join(self.prefix, ".hermes", "skills", "apt-momus", "SKILL.md")))
+
+    def test_hermes_skill_dir_is_apt_prefixed(self):
+        self.inst("--tools", "all", "--target", "hermes", "--prefix", self.prefix, "--yes")
+        for tool in ("metis", "momus"):
+            self.assertTrue(os.path.isfile(os.path.join(
+                self.prefix, ".hermes", "skills", f"apt-{tool}", "SKILL.md")))
+            self.assertFalse(os.path.exists(os.path.join(
+                self.prefix, ".hermes", "skills", tool)))
+
+    def test_claude_code_skill_dir_is_apt_prefixed(self):
+        self.inst("--tools", "all", "--target", "claude-code", "--prefix", self.prefix, "--yes")
+        for tool in ("metis", "momus"):
+            self.assertTrue(os.path.isfile(os.path.join(
+                self.prefix, ".claude", "skills", f"apt-{tool}", "SKILL.md")))
+            self.assertFalse(os.path.exists(os.path.join(
+                self.prefix, ".claude", "skills", tool)))
 
     def test_snippet_targets_write_untested_labelled_snippet(self):
         for target, rel in (("codex", ".codex/agent-planning-tools.md"),
                             ("opencode", ".config/opencode/agent-planning-tools.md"),
                             ("generic", "agent-planning-tools-AGENTS.md"),
-                            ("claude-code", ".claude/skills/metis/SKILL.md")):
+                            ("claude-code", ".claude/skills/apt-metis/SKILL.md")):
             prefix = os.path.join(self.dir, "p-" + target)
             self.inst("--tools", "metis", "--target", target, "--prefix", prefix, "--yes")
             path = os.path.join(prefix, *rel.split("/"))
@@ -108,7 +124,7 @@ class TargetTests(InstallBase):
                            capture_output=True, env=self.env(XDG_DATA_HOME=data), timeout=60)
         self.assertEqual(p.returncode, 0, p.stderr)
         self.assertTrue(os.path.exists(os.path.join(data, "agent-planning-tools", "tools", "metis", "metis.py")))
-        self.assertTrue(os.path.exists(os.path.join(self.home, ".hermes", "skills", "metis", "SKILL.md")))
+        self.assertTrue(os.path.exists(os.path.join(self.home, ".hermes", "skills", "apt-metis", "SKILL.md")))
 
 
 class SafetyTests(InstallBase):
@@ -227,7 +243,7 @@ class UninstallTests(InstallBase):
                        env=env, capture_output=True, timeout=60)
         subprocess.run([sys.executable, "-I", INSTALL, "--uninstall"], env=env, capture_output=True, timeout=60)
         self.assertTrue(os.path.exists(sibling))
-        self.assertFalse(os.path.exists(os.path.join(self.home, ".hermes", "skills", "metis")))
+        self.assertFalse(os.path.exists(os.path.join(self.home, ".hermes", "skills", "apt-metis")))
 
 
 class EndToEndTests(InstallBase):

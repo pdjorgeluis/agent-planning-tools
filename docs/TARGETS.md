@@ -10,8 +10,8 @@ vendors change their conventions.
 
 | Target | Writes (home-relative) | Kind | Tested by us | Location checked in vendor docs |
 |--------|------------------------|------|--------------|---------------------------------|
-| `hermes` | `.hermes/skills/<tool>/SKILL.md` | skill | **yes** | by use |
-| `claude-code` | `.claude/skills/<tool>/SKILL.md` | skill | untested | yes |
+| `hermes` | `.hermes/skills/apt-<tool>/SKILL.md` | skill | **yes** | by use |
+| `claude-code` | `.claude/skills/apt-<tool>/SKILL.md` | skill | untested | yes |
 | `codex` | `.codex/agent-planning-tools.md` | snippet | untested | partly (see below) |
 | `opencode` | `.config/opencode/agent-planning-tools.md` | snippet | untested | partly (see below) |
 | `generic` | `agent-planning-tools-AGENTS.md` | snippet | untested | not applicable |
@@ -24,7 +24,7 @@ installer never edits an existing instruction file.
 
 ## Hermes (tested)
 
-- Writes a skill per chosen tool to `~/.hermes/skills/<tool>/SKILL.md`.
+- Writes a skill per chosen tool to `~/.hermes/skills/apt-<tool>/SKILL.md`.
 - Tested: the installer and both tools were run on Hermes's host, including
   real model calls through the `claude` command (two calls per tool).
 - Profiles: Hermes can keep skills per profile. The installer writes to the
@@ -34,7 +34,7 @@ installer never edits an existing instruction file.
 
 ## Claude Code (untested)
 
-- Writes `~/.claude/skills/<tool>/SKILL.md`.
+- Writes `~/.claude/skills/apt-<tool>/SKILL.md`.
 - Verified in docs (2026-11-07): personal skills live in
   `~/.claude/skills/<name>/SKILL.md`; a skill is a directory with a `SKILL.md`
   holding YAML frontmatter and instructions; Claude loads it when relevant or

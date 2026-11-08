@@ -37,8 +37,8 @@ TOOL_FILES = {"metis": ("metis.py", "prompt.md", "context.example.md", "SKILL.md
 # (existing instruction files are never edited). Locations are vendors'
 # conventions as we understand them: UNVERIFIED until docs/TARGETS.md says so.
 TARGET_LAYOUT = {
-    "hermes": ("skill", ".hermes/skills/{tool}/SKILL.md"),
-    "claude-code": ("skill", ".claude/skills/{tool}/SKILL.md"),
+    "hermes": ("skill", ".hermes/skills/apt-{tool}/SKILL.md"),
+    "claude-code": ("skill", ".claude/skills/apt-{tool}/SKILL.md"),
     "codex": ("snippet", ".codex/agent-planning-tools.md"),
     "opencode": ("snippet", ".config/opencode/agent-planning-tools.md"),
     "generic": ("snippet", "agent-planning-tools-AGENTS.md"),

@@ -79,8 +79,8 @@ The installer prints one line per file (`WRITE`, `UNCHANGED`, `SKIP` or
 
 | Target | Writes | Kind |
 |--------|--------|------|
-| `hermes` | `~/.hermes/skills/<tool>/SKILL.md` | a skill, one per tool |
-| `claude-code` | `~/.claude/skills/<tool>/SKILL.md` | a skill, one per tool |
+| `hermes` | `~/.hermes/skills/apt-<tool>/SKILL.md` | a skill, one per tool |
+| `claude-code` | `~/.claude/skills/apt-<tool>/SKILL.md` | a skill, one per tool |
 | `codex` | `~/.codex/agent-planning-tools.md` | a snippet for you to include |
 | `opencode` | `~/.config/opencode/agent-planning-tools.md` | a snippet for you to include |
 | `generic` | `agent-planning-tools-AGENTS.md` in your home directory | a snippet for you to include |
