@@ -33,6 +33,9 @@ model = "YOUR-MODEL-ID"
 api_key_env = "YOUR_API_KEY_ENV_NAME"   # the NAME of the variable, not the key
 # max_tokens = 4000
 # timeout = 300
+# temperature = 0.3                 # a number; sent unless omit_temperature is true
+# omit_temperature = false          # true: do not send the temperature field
+# token_field = "max_tokens"        # or "max_completion_tokens"
 
 # 3) Any CLI that reads the prompt on stdin and prints the answer on stdout.
 #    This is how Codex, OpenCode or another tool can serve as the model.

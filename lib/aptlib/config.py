@@ -6,6 +6,7 @@ config lists (``api_key_env``). They live in a private dict and are never
 printed or logged.
 """
 
+import math
 import os
 import shlex
 import shutil
@@ -14,6 +15,8 @@ import tomllib
 KINDS = ("claude-cli", "openai-compat", "command")
 DEFAULT_MAX_TOKENS = 4000
 DEFAULT_TIMEOUT = 300
+DEFAULT_TEMPERATURE = 0.3
+TOKEN_FIELDS = ("max_tokens", "max_completion_tokens")
 
 
 class ConfigError(Exception):
@@ -103,6 +106,18 @@ def _validate_rung(raw, index):
         rung["model"] = str(raw["model"])
         rung["api_key_env"] = str(raw.get("api_key_env") or "")
         rung["max_tokens"] = _positive_int(raw.get("max_tokens"), 0) or None
+        temp = raw.get("temperature", DEFAULT_TEMPERATURE)
+        if (isinstance(temp, bool) or not isinstance(temp, (int, float))
+                or not math.isfinite(temp)):
+            return None, f"backend {name}: temperature must be a number"
+        omit = raw.get("omit_temperature", False)
+        if not isinstance(omit, bool):
+            return None, f"backend {name}: omit_temperature must be true or false"
+        field = raw.get("token_field", TOKEN_FIELDS[0])
+        if field not in TOKEN_FIELDS:
+            return None, (f"backend {name}: token_field must be one of "
+                          f"{', '.join(TOKEN_FIELDS)}")
+        rung.update(temperature=temp, omit_temperature=omit, token_field=field)
     else:  # command
         if not raw.get("command"):
             return None, f"backend {name}: missing command"

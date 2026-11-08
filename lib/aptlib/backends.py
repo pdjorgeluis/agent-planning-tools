@@ -106,10 +106,13 @@ def call_openai_compat(rung, api_key, max_tokens, system_prompt, user_text,
     headers = {"Content-Type": "application/json"}
     if api_key:
         headers["Authorization"] = f"Bearer {api_key}"
-    payload = {"model": rung["model"], "temperature": 0.3,
-               "max_tokens": rung.get("max_tokens") or max_tokens,
+    payload = {"model": rung["model"],
+               rung.get("token_field") or "max_tokens":
+                   rung.get("max_tokens") or max_tokens,
                "messages": [{"role": "system", "content": system_prompt},
                             {"role": "user", "content": user_text}]}
+    if not rung.get("omit_temperature"):
+        payload["temperature"] = rung.get("temperature", cfgmod.DEFAULT_TEMPERATURE)
     req = urllib.request.Request(url, data=json.dumps(payload).encode("utf-8"),
                                  headers=headers, method="POST")
     try:

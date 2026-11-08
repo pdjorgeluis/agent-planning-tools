@@ -100,14 +100,32 @@ api_key_env = "YOUR_API_KEY_ENV_NAME"   # the NAME of an environment variable
   `base_url` already ends with it.
 - The request is a single POST with a system message (the tool's prompt) and a
   user message (your request, or the spec bundle), `temperature` 0.3 and a
-  `max_tokens` budget. No tools or functions are offered.
+  `max_tokens` budget (both adjustable, see below). No tools or functions are
+  offered.
 - The answer is read from the first choice's message content. `finish=` in the
   header shows its `finish_reason`; `length` means the answer hit the token
   budget and may be cut short, so raise `max_tokens`.
 - If `api_key_env` names a variable that is not set, that rung fails with a
   cause that says which name is missing. It never prints a value.
 - A key is sent only as a bearer token in the request header to the `base_url`
-  you wrote. Leave `api_key_env` out for a local server that needs no key.
+  you wrote. HTTP redirects are never followed (the rung fails with
+  `redirect not followed (HTTP <code>)`), so the key cannot be carried to another
+  host. Leave `api_key_env` out for a local server that needs no key.
+
+### Request fields some providers reject
+
+Some providers refuse a `temperature` or the `max_tokens` field name. Three
+optional settings on an `openai-compat` rung adjust the request:
+
+```toml
+# temperature = 0.3                 # a number; default 0.3
+# omit_temperature = false          # true: the field is not sent at all
+# token_field = "max_tokens"        # or "max_completion_tokens"
+```
+
+A wrong type or an unknown `token_field` makes that rung invalid, with a cause
+printed, and the ladder moves on. Still no live provider has been tested; these
+settings are exercised against the mock server only.
 
 ## Kind 3: `command`
 

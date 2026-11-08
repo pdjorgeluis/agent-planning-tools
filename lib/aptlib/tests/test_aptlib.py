@@ -1,3 +1,4 @@
+import json
 import os
 import sys
 import unittest
@@ -146,6 +147,38 @@ class BackendTests(Sandbox):
         self.assertEqual(reply.text, "fine")
         self.assertEqual(len(first.requests), 1)
         self.assertIn("redirect not followed (HTTP 302)", causes[0])
+
+    def _sent(self, extra_toml):
+        srv = self.server((200, ok_body("hi")))
+        cfg = self.cfg(self.server_config(srv.base_url, "m") + extra_toml)
+        reply, _ = backends.run_ladder(cfg, cfg.rungs, "s", "u")
+        self.assertEqual(reply.text, "hi")
+        return json.loads(srv.requests[0]["raw"])
+
+    def test_temperature_default_sent(self):
+        p = self._sent("")
+        self.assertEqual(p["temperature"], 0.3)
+        self.assertEqual(p["max_tokens"], 4000)
+        self.assertNotIn("max_completion_tokens", p)
+
+    def test_temperature_custom_sent(self):
+        self.assertEqual(self._sent("temperature = 1\n")["temperature"], 1)
+
+    def test_omit_temperature_not_sent(self):
+        self.assertNotIn("temperature", self._sent("omit_temperature = true\n"))
+
+    def test_token_field_max_completion_tokens(self):
+        p = self._sent('token_field = "max_completion_tokens"\n')
+        self.assertEqual(p["max_completion_tokens"], 4000)
+        self.assertNotIn("max_tokens", p)
+
+    def test_bad_temperature_marks_rung_invalid(self):
+        for bad in ('temperature = "hot"', "temperature = true", "temperature = nan",
+                    "omit_temperature = 1", 'token_field = "max_tokenz"'):
+            cfg = self.cfg(self.server_config("http://h/v1", "bad") + bad + "\n")
+            self.assertEqual(cfg.rungs, [], bad)
+            self.assertEqual(len(cfg.invalid), 1, bad)
+            self.assertIn("backend bad:", cfg.invalid[0])
 
     def test_http_500_falls_to_next_rung(self):
         bad = self.server((500, {"error": "boom"}))
