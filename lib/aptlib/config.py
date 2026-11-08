@@ -78,6 +78,12 @@ class Config:
         name = rung.get("api_key_env")
         return self._keys.get(name, "") if name else ""
 
+    def scrub_names(self, rung):
+        """Variable names to remove from a child's environment: every rung's
+        api_key_env, except the names this rung lists in env_pass."""
+        names = {r["api_key_env"] for r in self.rungs if r.get("api_key_env")}
+        return names - set(rung.get("env_pass") or ())
+
     def secrets(self):
         """Values to redact from any error text."""
         return [v for v in self._keys.values() if v]
@@ -123,6 +129,14 @@ def _validate_rung(raw, index):
             return None, f"backend {name}: missing command"
         rung["command"] = raw["command"]
         rung["model"] = str(raw.get("model") or "")
+    if "env_pass" in raw:
+        if kind == "openai-compat":
+            return None, f"backend {name}: env_pass is only valid on command and claude-cli rungs"
+        passed = raw["env_pass"]
+        if (not isinstance(passed, list)
+                or not all(isinstance(n, str) and n for n in passed)):
+            return None, f"backend {name}: env_pass must be a list of variable names"
+        rung["env_pass"] = list(passed)
     cmd = rung.get("command")
     if cmd is not None and not isinstance(cmd, (str, list)):
         return None, f"backend {name}: command must be a string or a list"

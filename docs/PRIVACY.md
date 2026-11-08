@@ -100,6 +100,11 @@ temporary folder.
 
 ## Keys
 
+A `command` or `claude-cli` child process does not receive the API keys named
+by any rung's `api_key_env`, unless that rung lists the name in `env_pass`. The
+rest of the environment is inherited as it is, so keep other secrets out of the
+shell you run these tools from. See [BACKENDS.md](BACKENDS.md#what-a-child-process-inherits).
+
 Keys are read from environment variables, or from the dotenv file named by
 `APT_DOTENV`, and only for the names listed as `api_key_env`. They are held in
 memory for the run, never printed or logged, and removed from error text. See

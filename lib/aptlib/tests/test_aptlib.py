@@ -2,6 +2,7 @@ import json
 import os
 import sys
 import unittest
+from unittest import mock
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 sys.path.insert(0, os.path.join(REPO, "lib"))
@@ -179,6 +180,48 @@ class BackendTests(Sandbox):
             self.assertEqual(cfg.rungs, [], bad)
             self.assertEqual(len(cfg.invalid), 1, bad)
             self.assertIn("backend bad:", cfg.invalid[0])
+
+    def _env_probe(self, kind_toml, **extra):
+        probe = os.path.join(self.bin, "probe")
+        with open(probe, "w") as f:
+            f.write(f"#!{sys.executable}\nimport os, sys\nsys.stdin.read()\n"
+                    "print(','.join(sorted(k for k in ('K1', 'K2', 'PLAIN', 'HERMES_X')"
+                    " if k in os.environ)))\n")
+        os.chmod(probe, 0o755)
+        cfg = self.cfg(self.server_config("http://h/v1", "o1", key_env="K1") +
+                       self.server_config("http://h/v1", "o2", key_env="K2") +
+                       kind_toml.replace("PROBE", probe), K1="a-1234", K2="b-1234",
+                       PLAIN="x", HERMES_X="y")
+        rung = [r for r in cfg.rungs if r["name"] == "child"]
+        with mock.patch.dict(os.environ, self.env(K1="a-1234", K2="b-1234",
+                                                  PLAIN="x", HERMES_X="y"), clear=True):
+            reply, causes = backends.run_ladder(cfg, rung, "s", "u")
+        self.assertIsNotNone(reply, causes)
+        return reply.text.strip()
+
+    CMD = '[[backend]]\nname="child"\nkind="command"\ncommand="PROBE"\n'
+    CLI = '[[backend]]\nname="child"\nkind="claude-cli"\ncommand="PROBE"\n'
+
+    def test_env_scrub_removes_other_rungs_keys(self):
+        self.assertEqual(self._env_probe(self.CLI), "PLAIN")
+
+    def test_env_scrub_command_kind_too(self):
+        self.assertEqual(self._env_probe(self.CMD), "HERMES_X,PLAIN")
+
+    def test_env_pass_keeps_named_key(self):
+        out = self._env_probe(self.CMD.rstrip() + '\nenv_pass = ["K2", "NOT_SET"]\n')
+        self.assertEqual(out, "HERMES_X,K2,PLAIN")
+
+    def test_env_pass_validation_and_shared_key_name(self):
+        cfg = self.cfg(self.server_config("http://h/v1", "o1", key_env="K1") +
+                       '[[backend]]\nname="c"\nkind="command"\ncommand="x"\n'
+                       'env_pass = "K1"\n')
+        self.assertEqual(len(cfg.invalid), 1)
+        cfg = self.cfg(self.server_config("http://h/v1", "o1", key_env="K1") +
+                       self.server_config("http://h/v1", "o2", key_env="K1") +
+                       self.server_config("http://h/v1", "o3") +
+                       '[[backend]]\nname="c"\nkind="command"\ncommand="x"\n')
+        self.assertEqual(cfg.scrub_names(cfg.rungs[-1]), {"K1"})
 
     def test_http_500_falls_to_next_rung(self):
         bad = self.server((500, {"error": "boom"}))

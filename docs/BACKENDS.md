@@ -152,6 +152,15 @@ command = ["YOUR-CLI", "--reads-stdin"]   # a list, or a single string
   tool-less. The prompt tells the model it has no tools, but a prompt is not a
   sandbox.
 
+## What a child process inherits
+
+When a `command` or `claude-cli` rung runs, the tools remove from its
+environment every variable named as an `api_key_env` in any rung, so one rung's
+child never sees another rung's key. List a name in that rung's optional
+`env_pass = ["NAME"]` to keep it for that rung only. `claude-cli` also keeps
+dropping `HERMES_*` variables. This is a limit, not a sandbox: the rest of the
+environment is still inherited by the child.
+
 ## Settings
 
 ```toml

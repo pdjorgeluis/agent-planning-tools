@@ -43,3 +43,4 @@ api_key_env = "YOUR_API_KEY_ENV_NAME"   # the NAME of the variable, not the key
 name = "my-cli"
 kind = "command"
 command = ["YOUR-CLI", "--reads-stdin"]
+# env_pass = ["SOME_NAME"]   # keep this variable even if another rung's api_key_env names it

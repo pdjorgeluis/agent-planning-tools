@@ -81,7 +81,15 @@ def call_command(argv, stdin_text, timeout, env=None):
     return text, "n/a", None
 
 
-def call_claude_cli(rung, effort, system_prompt, user_text, timeout):
+def child_env(drop_names=(), drop_prefixes=()):
+    """The environment for a child process: everything inherited except the
+    named variables and the prefixed ones."""
+    drop = set(drop_names)
+    return {k: v for k, v in os.environ.items()
+            if k not in drop and not k.startswith(tuple(drop_prefixes))}
+
+
+def call_claude_cli(rung, effort, system_prompt, user_text, timeout, drop=()):
     try:
         argv = cfgmod.command_argv(rung.get("command") or "claude")
     except ValueError as exc:
@@ -93,8 +101,7 @@ def call_claude_cli(rung, effort, system_prompt, user_text, timeout):
     if eff:
         argv += ["--effort", eff]
     argv += CLAUDE_SAFETY_FLAGS
-    env = {k: v for k, v in os.environ.items()
-           if not k.startswith(ENV_SCRUB_PREFIXES)}
+    env = child_env(drop, ENV_SCRUB_PREFIXES)
     return call_command(argv, _wrap_text(system_prompt, user_text), timeout, env)
 
 
@@ -156,8 +163,9 @@ def run_ladder(cfg, rungs, system_prompt, user_text, validate=None,
         timeout = rung.get("timeout") or cfg.timeout
         label = rung["name"]
         if rung["kind"] == "claude-cli":
-            text, finish, err = call_claude_cli(rung, effort, system_prompt,
-                                                user_text, timeout)
+            text, finish, err = call_claude_cli(
+                rung, effort, system_prompt, user_text, timeout,
+                cfg.scrub_names(rung))
         elif rung["kind"] == "openai-compat":
             key = cfg.key_for(rung)
             if rung.get("api_key_env") and not key:
@@ -173,7 +181,8 @@ def run_ladder(cfg, rungs, system_prompt, user_text, validate=None,
                 text, finish, err = None, None, f"bad command: {exc}"
             else:
                 text, finish, err = call_command(
-                    argv, _wrap_text(system_prompt, user_text), timeout)
+                    argv, _wrap_text(system_prompt, user_text), timeout,
+                    child_env(cfg.scrub_names(rung)))
         if err:
             causes.append(f"{label}: {redact(err, cfg.secrets())}")
             continue
